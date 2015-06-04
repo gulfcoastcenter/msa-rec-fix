@@ -1,0 +1,121 @@
+'script to add in the program ru for clients with active cans/ansa authorizations
+start msa-fix(parmfile, option, client, retcode)
+
+parmfile    is x
+option      is x
+client      is x
+retcode     is b
+
+c.msarec    is h
+c.msa.dsch  is d
+c.msa.prog  is b
+
+db             is b
+
+c.cans.rec     is h
+c.cans.stat    is x
+c.cans.type    is x
+c.cans.clinic  is x
+c.cans.disdt   is d
+
+c.ansa.rec     is h
+c.ansa.stat    is x
+c.ansa.type    is x
+c.ansa.clinic  is x
+c.ansa.disdt   is d
+
+c.uabd         is h
+c.uabd.pur     is x
+c.uabd.disdt   is d
+c.uabd.valid   is x
+c.uabd.clinic  is x
+
+c.cabd.rec     is h
+c.cabd.ass     is x
+c.cabd.disdt   is d
+c.cabd.valid   is x
+c.cabd.clinic  is x
+
+type_disc      is x
+stat_auth      is x
+program_dct    is b
+reg_limit      is b
+
+read-id     is x
+reg-cnt     is b
+
+db = 2
+type_disc = "3"
+stat_auth = "3"
+program_dct = 9229
+reg_limit = 0
+
+getparm(parmfile)
+getoption(option)
+
+read-id = client
+reg-cnt = 0
+$looplimit = 0
+
+retcode = $dbstart(db, read-id, client)
+
+$dblock()
+retcode = $dbread(db, read-id, c.msarec, c.msa.dsch, c.msa.prog,
+   c.uabd, c.uabd.pur, c.uabd.disdt, c.uabd.valid, c.uabd.clinic,
+   c.cabd.rec, c.cabd.ass, c.cabd.disdt, c.cabd.valid, c.cabd.clinic,
+   c.cans.rec, c.cans.stat, c.cans.type, c.cans.clinic, c.cans.disdt,
+   c.ansa.rec, c.ansa.stat, c.ansa.type, c.ansa.clinic, c.ansa.disdt)
+do while retcode < 3
+   if c.msarec dp and c.msa.prog !dp and c.msa.dsch !dp then
+      if c.uabd dp and c.ansa.rec !dp then
+         if c.uabd.valid = "Y" then
+            c.msa.prog = $dct(program_dct, c.uabd.clinic, "2")
+            if c.uabd.pur = "D" then
+               c.msa.dsch = c.uabd.disdt
+            endif
+         endif
+      endif
+      if c.cabd.rec dp and c.ansa.rec !dp and c.cans.rec !dp then
+         if c.cabd.valid = "Y" then
+            c.msa.prog = $dct(program_dct, c.cabd.clinic, "2")
+            if c.cabd.ass = "D" then
+               c.msa.dsch = c.cabd.disdt
+            endif
+         endif
+      endif
+      if c.cans.rec dp then
+         if c.cans.stat = stat_auth then
+            c.msa.prog = $dct(program_dct, c.cans.clinic, "2")
+            if c.cans.disdt dp then
+               c.msa.dsch = c.cans.disdt
+            endif
+         endif
+      endif
+      if c.ansa.rec dp then
+         if c.ansa.stat = stat_auth then
+            c.msa.prog = $dct(program_dct, c.ansa.clinic, "2")
+            if c.ansa.disdt !dp then
+               c.msa.dsch = c.ansa.disdt
+            endif
+         endif
+      endif
+      retcode = $dbupdate(db,read-id, c.msarec, c.msa.prog, c.msa.dsch)
+   endif
+   $dbunlock()
+   reg-cnt++
+   if (reg-cnt > reg_limit and reg_limit > 0) then
+      retcode = 999
+   else
+      $dblock()
+      retcode = $dbreadnext(db, read-id, c.msarec, c.msa.dsch, c.msa.prog,
+         c.uabd, c.uabd.pur, c.uabd.disdt, c.uabd.valid, c.uabd.clinic,
+         c.cabd.rec, c.cabd.ass, c.cabd.disdt, c.cabd.valid, c.cabd.clinic,
+         c.cans.rec, c.cans.stat, c.cans.type, c.cans.clinic, c.cans.disdt,
+         c.ansa.rec, c.ansa.stat, c.ansa.type, c.ansa.clinic, c.ansa.disdt)
+   endif
+enddo
+$dbunlock()
+end msa-fix
+
+%include inc_GetParm
+%include inc_GetOption

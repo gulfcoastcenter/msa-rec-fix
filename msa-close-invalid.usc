@@ -1,0 +1,48 @@
+start msa-close-invalid(parmfile, option, client, retcode)
+
+parmfile       is x
+option         is x
+client         is x
+retcode        is x
+
+read-id        is x
+
+c.msarec    is h
+c.msa.dsch  is d
+c.msa.prog  is b
+
+db             is b
+
+db = 2
+
+getparm(parmfile)
+getoption(option)
+
+read-id = client
+
+retcode = $dbstart(db, read-id)
+
+$dblock()
+retcode = $dbread(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+do while retcode < 3
+   do while retcode < 2
+      if c.msaprog !dp then
+         c.msa.dsch = close_date
+         retcode = $dbupdate(read-id, c.msarec, c.msa.dsch)
+         $dbunlock()
+         $dblock()
+         retcode = $dbread(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+      else
+         $dblock()
+         retcode = $dbreadnextdst(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+      endif
+   enddo
+   $dblock()
+   retcode = $dbreadnext(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+enddo
+$dbunlock()
+
+end msa-close-invalid
+
+%include inc_GetParm
+%include inc_GetOption
