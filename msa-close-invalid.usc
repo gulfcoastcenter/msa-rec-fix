@@ -7,38 +7,58 @@ retcode        is x
 
 read-id        is x
 
-c.msarec    is h
-c.msa.dsch  is d
-c.msa.prog  is b
+c.msarec       is h
+c.msa.dsch     is d
+c.msa.prog     is b
 
 db             is b
+close_date     is d
+reg_limit      is b
+
+reg-cnt        is b
+
+$allowupdate(retcode)
+$looplimit = 0
 
 db = 2
+reg_limit = 0
+close_date = "8/31/2014"
 
 getparm(parmfile)
 getoption(option)
+
+reg-cnt = 0
+
+if close_date !dp then 
+   $errmsg1 = "Close Date Note Specified"
+   return
+endif
 
 read-id = client
 
 retcode = $dbstart(db, read-id)
 
 $dblock()
-retcode = $dbread(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+retcode = $dbread(db, read-id, c.msarec, c.msa.dsch, c.msa.prog)
 do while retcode < 3
    do while retcode < 2
-      if c.msaprog !dp then
+      if c.msa.prog !dp and c.msa.dsch !dp then
          c.msa.dsch = close_date
-         retcode = $dbupdate(read-id, c.msarec, c.msa.dsch)
+         retcode = $dbupdate(db, read-id, c.msarec, c.msa.dsch)
          $dbunlock()
+         'restart the read after an update
          $dblock()
-         retcode = $dbread(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+         retcode = $dbread(db, read-id, c.msarec, c.msa.dsch, c.msa.prog)
       else
          $dblock()
-         retcode = $dbreadnextdst(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+         retcode = $dbreadnextdst(db, read-id, c.msarec, c.msa.dsch, c.msa.prog)
       endif
    enddo
    $dblock()
-   retcode = $dbreadnext(read-id, c.msarec, c.msa.dsch, c.msa.prog)
+   retcode = $dbreadnext(db, read-id, c.msarec, c.msa.dsch, c.msa.prog)
+   if reg_limit > 0 and reg_limit > ++reg-cnt then
+      retcode = 999
+   endif
 enddo
 $dbunlock()
 
