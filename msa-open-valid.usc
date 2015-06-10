@@ -1,0 +1,40 @@
+start msa-open-valid(parmfile, option, client, retcode)
+
+parmfile       is x
+option         is x
+client         is x
+retcode        is x
+
+read-id        is x
+
+c.cans.rec     is h
+c.ansa.rec     is h
+
+db             is b
+
+$allowupdate(retcode)
+$looplimit = 0
+
+db = 2
+
+getparm(parmfile)
+getoption(option)
+
+read-id = client
+
+retcode = $dbstart(db, read-id)
+
+retcode = $dbread(db, read-id, c.cans.rec, c.ansa.rec)
+do while retcode < 3
+   if (c.cans.rec dp) then
+      call "trrEpisodeAdmit"("TRRW", "client_type`C", read-id)
+   elseif (c.ansa.rec dp) then
+      call "trrEpisodeAdmit"("TRRW", "client_type`A", read-id)
+   endif
+   retcode = $dbreadnext(db, read-id, c.cans.rec, c.ansa.rec) 
+enddo
+
+end msa-open-valid
+
+%include inc_GetParm
+%include inc_GetOption
