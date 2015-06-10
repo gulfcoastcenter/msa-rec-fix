@@ -1,0 +1,14 @@
+{
+  "name": "msa-rec-fix",
+  "version": "1.0.0",
+  "description": "one time msa record update scripts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tim Markello",
+  "license": "ISC",
+  "devDependencies": {
+    "mis-util": "^0.4.1"
+  }
+}
